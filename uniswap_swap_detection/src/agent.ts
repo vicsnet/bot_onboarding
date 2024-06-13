@@ -1,92 +1,72 @@
 import {
-  BlockEvent,
   Finding,
-  Initialize,
-  HandleBlock,
-  HealthCheck,
   HandleTransaction,
-  HandleAlert,
-  AlertEvent,
   TransactionEvent,
   FindingSeverity,
   FindingType,
+  ethers,
 } from "forta-agent";
 
-export const ERC20_TRANSFER_EVENT =
-  "event Transfer(address indexed from, address indexed to, uint256 value)";
-export const TETHER_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-export const TETHER_DECIMALS = 6;
-let findingsCount = 0;
 
-const handleTransaction: HandleTransaction = async (
-  txEvent: TransactionEvent
-) => {
+import { UNISWAP_ADDRESS, SWAP_EVENT, FUNCTION_EXACT, SWAP_ROUTER, ABI } from "./constant";
+
+import { getPool } from "./utils";
+
+
+
+const provideHandleTransaction = () => async (txEvent: TransactionEvent) => { 
+
+
   const findings: Finding[] = [];
 
-  // limiting this agent to emit only 5 findings so that the alert feed is not spammed
-  if (findingsCount >= 5) return findings;
+  const functionCalls =  txEvent.filterFunction([FUNCTION_EXACT], SWAP_ROUTER );
+  
+  
+  if(functionCalls.length === 0){
+    console.log("no findings");
+    return findings;
+  }
 
-  // filter the transaction logs for Tether transfer events
-  const tetherTransferEvents = txEvent.filterLog(
-    ERC20_TRANSFER_EVENT,
-    TETHER_ADDRESS
-  );
+  
 
-  tetherTransferEvents.forEach((transferEvent) => {
-    // extract transfer event arguments
-    const { to, from, value } = transferEvent.args;
-    // shift decimals of transfer value
-    const normalizedValue = value.div(10 ** TETHER_DECIMALS);
+  
+  for (const call of functionCalls) {
+  
+  const poolAddress = await getPool(call.args[0], call.args[1], call.args[2]);
 
-    // if more than 10,000 Tether were transferred, report it
-    if (normalizedValue.gt(10000)) {
+
+
+  const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT, poolAddress);
+  
+  
+    tokenSwapEvent.forEach((swapEvent) => {
+      const { sender, recipient, amount0, amount1 } = swapEvent.args;
+
       findings.push(
         Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
+          name: "Swap detected",
+          description: `A swap between ${call.args[0]} and ${call.args[1]} on UniswapV3 was detected`,
           alertId: "FORTA-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
-            to,
-            from,
+            sender,
+            recipient,
+            tokenIn:call.args[0],
+            tokenOut:call.args[1],
+            amount0: amount0.toString(),
+            amount1: amount1.toString(),
           },
         })
       );
-      findingsCount++;
-    }
-  });
+    });
+}
+
+
 
   return findings;
 };
 
-// const initialize: Initialize = async () => {
-//   // do some initialization on startup e.g. fetch data
-// }
-
-// const handleBlock: HandleBlock = async (blockEvent: BlockEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some block condition
-//   return findings;
-// }
-
-// const handleAlert: HandleAlert = async (alertEvent: AlertEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some alert condition
-//   return findings;
-// }
-
-// const healthCheck: HealthCheck = async () => {
-//   const errors: string[] = [];
-  // detect some health check condition
-  // errors.push("not healthy due to some condition")
-  // return errors;
-// }
-
 export default {
-  // initialize,
-  handleTransaction,
-  // healthCheck,
-  // handleBlock,
-  // handleAlert
+  handleTransaction: provideHandleTransaction(),
 };
