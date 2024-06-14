@@ -14,6 +14,7 @@ import {
   FUNCTION_EXACT,
   SWAP_ROUTER,
 } from "./constant";
+import { createAddress } from "forta-agent-tools";
 
 describe("swap occur", () => {
   let handleTransaction: HandleTransaction;
@@ -93,5 +94,28 @@ describe("swap occur", () => {
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
     });
+
+    it("returns empty findings if not uniswap pool address", async ()=>{
+      const address = createAddress('0x3');
+      const mockTransaction = {
+        address,
+        args: {
+          sender,
+          recipient,
+          amount0,
+          amount1,
+          sqrtPriceX96: sqrtPricex96,
+          liquidity,
+          tick,
+        },
+      };
+      mockTxEvent.filterLog = jest.fn().mockReturnValue([mockTransaction]);
+
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([]);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
+
+    })
   });
 });
