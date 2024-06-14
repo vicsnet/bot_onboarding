@@ -43,74 +43,17 @@ describe("swap occur", () => {
   const tick = 10;
   const sender = "0x74993dD14475b25986B6ed8d12d3a0dFf92248f4";
   const poolAddress = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76";
-  // describe("token swap", () => {
-  //   const mockSwapEvent = {
-  //     args: {
-  //       sender,
-  //       recipient,
-  //       amount0,
-  //       amount1,
-  //       sqrtPricex96,
-  //       liquidity,
-  //       tick,
-  //     },
-  //   };
 
-  //   describe("function calls befor filter", () => {
-  //     it("returns empty findingd if there is no swap", async () => {
-  //       const txEvent = new TestTransactionEvent();
-  //       const findings = await handleTransaction(txEvent);
-  //       expect(findings).toStrictEqual([]);
-
-  //     });
-
-  //     it("calls the function", async () => {
-  //       const txEvent = new TestTransactionEvent()
-  //         .setFrom(sender)
-  //         .setTo(String(SWAP_ROUTER))
-  //         .addTraces({
-  //           function: FUNCTION_EXACT,
-  //           to: String(SWAP_ROUTER),
-  //           from: sender,
-  //           arguments: [
-  //             tokenIn,
-  //             tokenOut,
-  //             fee,
-  //             recipient,
-  //             deadline,
-  //             amount0,
-  //             amountOutMinimum,
-  //             sqrtPriceLimitX96,
-  //           ],
-  //         });
-  //       // const poolAddress = await handleTransaction(txEvent);
-
-  //       txEvent.filterLog = jest.fn().mockReturnValue([mockSwapEvent]);
-
-  //       const findings = await handleTransaction(txEvent);
-  //       expect(findings).toStrictEqual([
-  //         Finding.fromObject({
-  //           name: "Swap detected",
-  //           description: `A swap between ${tokenIn} and ${tokenOut} on UniswapV3 was detected`,
-  //           alertId: "FORTA-1",
-  //           severity: FindingSeverity.Low,
-  //           type: FindingType.Info,
-  //           metadata: {
-  //             sender,
-  //             recipient,
-  //             tokenIn:tokenIn,
-  //             tokenOut:tokenOut,
-  //             amount0: String(amount0),
-  //             amount1: String(amount1),
-  //           },
-  //         }),
-  //       ]);
-  //     });
-  //   });
-
-  // });
 
   describe("token swap detection handle Transaction", () => {
+    it("returns empty findings", async ()=>{
+      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
+      const findings = await handleTransaction(mockTxEvent);
+
+      expect(findings).toStrictEqual([]);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
+    })
     it("returns findings if swap was detected and pool address is the same as sender's address", async () => {
       const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76";
       const mockTransaction = {

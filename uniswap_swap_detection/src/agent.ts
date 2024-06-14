@@ -43,6 +43,7 @@ const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
     const poolAddress = await getPool(token0, token1, fee);
 
     if (poolAddress.toLowerCase() !== address.toLowerCase()) {
+      console.log("error")
       return findings;
     }
 
