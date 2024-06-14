@@ -8,7 +8,8 @@ import {
 } from "forta-agent";
 
 
-import { UNISWAP_ADDRESS, SWAP_EVENT, FUNCTION_EXACT, SWAP_ROUTER, ABI } from "./constant";
+import { UNISWAP_ADDRESS, SWAP_EVENT, FUNCTION_EXACT, SWAP_ROUTER, PROVIDER } from "./constant";
+import {poolABI} from "./abi";
 
 import { getPool } from "./utils";
 
@@ -19,48 +20,66 @@ const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
 
   const findings: Finding[] = [];
 
-  const functionCalls =  txEvent.filterFunction([FUNCTION_EXACT], SWAP_ROUTER );
+  
+  const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
   
   
-  if(functionCalls.length === 0){
-    console.log("no findings");
+
+for (const swap of tokenSwapEvent){
+
+  const { sender, recipient, amount0, amount1 } = swap.args;
+  const address = swap.address;
+  
+
+  
+  const  contract = new ethers.Contract(address, poolABI, PROVIDER);
+  
+  
+  let token0, token1, fee;
+
+  try {
+    
+    token1 = await contract.token1();
+    token0 = await contract.token0();
+    console.log('token0 and 1 input',token0, token1)
+     fee = await contract.fee();
+  
+     
+    } catch (error) {
+      console.log('Error reading contract data:',error)
+     
+    }
+
+    const  poolAddress =  await getPool(token0, token1, fee);
+  
+  if (poolAddress.toLowerCase() !== address.toLowerCase()){
     return findings;
   }
 
-  
+ 
 
-  
-  for (const call of functionCalls) {
-  
-  const poolAddress = await getPool(call.args[0], call.args[1], call.args[2]);
+  findings.push(
+    Finding.fromObject({
+      name: "Swap detected",
+      description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${poolAddress}`,
+      alertId: "FORTA-1",
+      severity: FindingSeverity.Low,
+      type: FindingType.Info,
+      protocol: "polygon",
+      metadata: {
+        sender,
+        recipient,
+        tokenIn:token0,
+        tokenOut:token1,
+        amount0: amount0.toString(),
+        amount1: amount1.toString(),
+      },
+    })
+  );
 
-
-
-  const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT, poolAddress);
-  
-  
-    tokenSwapEvent.forEach((swapEvent) => {
-      const { sender, recipient, amount0, amount1 } = swapEvent.args;
-
-      findings.push(
-        Finding.fromObject({
-          name: "Swap detected",
-          description: `A swap between ${call.args[0]} and ${call.args[1]} on UniswapV3 was detected`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            sender,
-            recipient,
-            tokenIn:call.args[0],
-            tokenOut:call.args[1],
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-          },
-        })
-      );
-    });
 }
+
+
 
 
 
