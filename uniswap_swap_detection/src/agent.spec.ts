@@ -13,18 +13,26 @@ import {
   SWAP_EVENT,
   FUNCTION_EXACT,
   SWAP_ROUTER,
+  CREATED_POOL,
 } from "./constant";
 import { createAddress } from "forta-agent-tools";
+import { TestTransactionEvent } from "forta-agent-tools/lib/test";
 
 describe("swap occur", () => {
   let handleTransaction: HandleTransaction;
+
+  let txEvent: TestTransactionEvent;
 
   const mockTxEvent = createTransactionEvent({} as any);
 
   beforeAll(() => {
     handleTransaction = agent.handleTransaction;
+    jest.spyOn(Date, "now").mockImplementation(() => 1590000000000);
   });
 
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
   const usrAddr = "0x74993dD14475b25986B6ed8d12d3a0dFf92248f4";
   const tokenIn = "0x5F32AbeeBD3c2fac1E7459A27e1AE9f1C16ccccA";
   const tokenOut = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
@@ -45,38 +53,32 @@ describe("swap occur", () => {
   const sender = "0x74993dD14475b25986B6ed8d12d3a0dFf92248f4";
   const poolAddress = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76";
 
-
   describe("token swap detection handle Transaction", () => {
-    it("returns empty findings", async ()=>{
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
-      const findings = await handleTransaction(mockTxEvent);
+    it("returns empty findings with TestTransactionEvent", async () => {
+      txEvent = new TestTransactionEvent();
+      const findings = await handleTransaction(txEvent);
 
       expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
-    })
-    it("returns findings if swap was detected and pool address is the same as sender's address", async () => {
-      const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76";
-      const mockTransaction = {
-        address,
-        args: {
-          sender,
-          recipient,
-          amount0,
-          amount1,
-          sqrtPriceX96: sqrtPricex96,
-          liquidity,
-          tick,
-        },
-      };
+    });
+    it("returns findings", async () => {
+      const address =
+        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
 
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([mockTransaction]);
+      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
+        sender,
+        recipient,
+        amount0,
+        amount1,
+        sqrtPricex96,
+        liquidity,
+        tick,
+      ]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(txEvent);
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Swap detected",
-          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${poolAddress}`,
+          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
           alertId: "FORTA-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -91,31 +93,98 @@ describe("swap occur", () => {
           },
         }),
       ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
     });
 
-    it("returns empty findings if not uniswap pool address", async ()=>{
-      const address = createAddress('0x3');
-      const mockTransaction = {
+    it("returns empty findings if not uniswap event", async () => {
+      const address = createAddress("0x3");
+
+      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
+        sender,
+        recipient,
+        amount0,
+        amount1,
+        sqrtPricex96,
+        liquidity,
+        tick,
+      ]);
+      const findings = await handleTransaction(txEvent);
+      expect(findings).toStrictEqual([]);
+    });
+    it("returns empty findings on non swap event", async () => {
+      const address =
+        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+
+      txEvent = new TestTransactionEvent().addEventLog(CREATED_POOL, address, [
+        token0,
+        token1,
+        fee,
+        tick,
         address,
-        args: {
+      ]);
+
+      const findings = await handleTransaction(txEvent);
+      expect(findings).toStrictEqual([]);
+    });
+    it("returns multiple findings for uniswap swap event", async () => {
+      const address =
+        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+      const recipientNew = createAddress("0x4");
+
+      txEvent = new TestTransactionEvent()
+        .addEventLog(SWAP_EVENT, address, [
           sender,
           recipient,
           amount0,
           amount1,
-          sqrtPriceX96: sqrtPricex96,
+          sqrtPricex96,
           liquidity,
           tick,
-        },
-      };
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([mockTransaction]);
+        ])
+        .addEventLog(SWAP_EVENT, address, [
+          sender,
+          recipientNew,
+          amount0,
+          amount1,
+          sqrtPricex96,
+          liquidity,
+          tick,
+        ]);
 
-      const findings = await handleTransaction(mockTxEvent);
-      expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(SWAP_EVENT);
-
-    })
+      const findings = await handleTransaction(txEvent);
+      expect(findings).toStrictEqual([
+        Finding.fromObject({
+          name: "Swap detected",
+          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
+          alertId: "FORTA-1",
+          severity: FindingSeverity.Low,
+          type: FindingType.Info,
+          protocol: "polygon",
+          metadata: {
+            sender,
+            recipient,
+            tokenIn: token0,
+            tokenOut: token1,
+            amount0: amount0.toString(),
+            amount1: amount1.toString(),
+          },
+        }),
+        Finding.fromObject({
+          name: "Swap detected",
+          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
+          alertId: "FORTA-1",
+          severity: FindingSeverity.Low,
+          type: FindingType.Info,
+          protocol: "polygon",
+          metadata: {
+            sender,
+            recipient: recipientNew,
+            tokenIn: token0,
+            tokenOut: token1,
+            amount0: amount0.toString(),
+            amount1: amount1.toString(),
+          },
+        }),
+      ]);
+    });
   });
 });

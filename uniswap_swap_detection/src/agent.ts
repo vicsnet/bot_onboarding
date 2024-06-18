@@ -16,7 +16,7 @@ import {
 } from "./constant";
 import { poolABI } from "./abi";
 
-import { getPool } from "./utils";
+import { getPool, isUniswapPool } from "./utils";
 
 const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
   const findings: Finding[] = [];
@@ -34,23 +34,29 @@ const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
     try {
       token1 = await contract.token1();
       token0 = await contract.token0();
-      console.log("token0 and 1 input", token0, token1);
       fee = await contract.fee();
     } catch (error) {
       console.log("Error reading contract data:", error);
     }
 
-    const poolAddress = await getPool(token0, token1, fee);
+    const salt = ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(
+        ["address", "address", "uint24"],
+        [token0, token1, fee]
+      )
+    );
+    const isuniswapAddress = isUniswapPool(token0, token1, fee);
 
-    if (poolAddress.toLowerCase() !== address.toLowerCase()) {
-      console.log("error")
+    // const poolAddress = await getPool(token0, token1, fee);
+
+    if (isuniswapAddress.toLowerCase() !== address.toLowerCase()) {
       return findings;
     }
 
     findings.push(
       Finding.fromObject({
         name: "Swap detected",
-        description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${poolAddress}`,
+        description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
         alertId: "FORTA-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
