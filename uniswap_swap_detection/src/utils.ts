@@ -13,14 +13,15 @@ export const getPool = (token1: String, token2: String, fee: Number) => {
   return poolAddress;
 };
 
-export const isUniswapPool = (token0: String, token1: String, fee: Number) => {
-  const salt = ethers.utils.keccak256(
+export const isUniswapPool = async(token0: String, token1: String, fee: Number) => {
+  const salt = await ethers.utils.keccak256(
     ethers.utils.defaultAbiCoder.encode(
       ["address", "address", "uint24"],
       [token0, token1, fee]
     )
   );
-  const isuniswapAddress = ethers.utils.getCreate2Address(
+  
+  const isuniswapAddress = await ethers.utils.getCreate2Address(
     UNISWAP_ADDRESS,
     salt,
     POOL_INIT_CODE_HASH
