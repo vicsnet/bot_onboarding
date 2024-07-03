@@ -5,6 +5,7 @@ import {
   FindingSeverity,
   FindingType,
   ethers,
+  getEthersProvider,
 } from "forta-agent";
 
 import {
@@ -12,22 +13,29 @@ import {
   SWAP_EVENT,
   FUNCTION_EXACT,
   SWAP_ROUTER,
-  PROVIDER,
+  // PROVIDER,
 } from "./constant";
 import { poolABI } from "./abi";
 
 import { getPool, isUniswapPool } from "./utils";
+import { MockEthersProvider } from "forta-agent-tools/lib/test";
 
-const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
+interface HandleArgs {
+  PROVIDER: ethers.providers.JsonRpcProvider;
+
+}
+const PROVIDER = getEthersProvider();
+export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: TransactionEvent) => {
   const findings: Finding[] = [];
 
   const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
+// const PROVIDER = getEthersProvider();
 
   for (const swap of tokenSwapEvent) {
     const { sender, recipient, amount0, amount1 } = swap.args;
     const address = swap.address;
 
-    const contract = new ethers.Contract(address, poolABI, PROVIDER);
+    const contract = new ethers.Contract(address, poolABI, args.PROVIDER);
 
     let token0, token1, fee;
 
@@ -38,14 +46,17 @@ const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
     } catch (error) {
       console.log("Error reading contract data:", error);
     }
+    console.log("token1...", token1)
+    console.log("token0...", token0)
+    console.log("fee...", fee)
 
-    const salt = ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(
-        ["address", "address", "uint24"],
-        [token0, token1, fee]
-      )
-    );
-    const isuniswapAddress = isUniswapPool(token0, token1, fee);
+    // const salt = ethers.utils.keccak256(
+    //   ethers.utils.defaultAbiCoder.encode(
+    //     ["address", "address", "uint24"],
+    //     [token0, token1, fee]
+    //   )
+    // );
+    const isuniswapAddress = await isUniswapPool(token0, token1, fee);
 
     // const poolAddress = await getPool(token0, token1, fee);
 
@@ -77,5 +88,7 @@ const provideHandleTransaction = () => async (txEvent: TransactionEvent) => {
 };
 
 export default {
-  handleTransaction: provideHandleTransaction(),
+  handleTransaction: provideHandleTransaction({
+    PROVIDER:PROVIDER
+  }),
 };
