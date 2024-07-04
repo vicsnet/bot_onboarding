@@ -9,7 +9,7 @@ import {
 } from "forta-agent";
 
 import {
-  UNISWAP_ADDRESS,
+  UNISWAP_FACTORY_ADDRESS,
   SWAP_EVENT,
   FUNCTION_EXACT,
   SWAP_ROUTER,
@@ -17,7 +17,7 @@ import {
 } from "./constant";
 import { poolABI } from "./abi";
 
-import { getPool, isUniswapPool } from "./utils";
+import { uniswapPoolAddress } from "./utils";
 import { MockEthersProvider } from "forta-agent-tools/lib/test";
 
 interface HandleArgs {
@@ -50,17 +50,12 @@ export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: Tra
     console.log("token0...", token0)
     console.log("fee...", fee)
 
-    // const salt = ethers.utils.keccak256(
-    //   ethers.utils.defaultAbiCoder.encode(
-    //     ["address", "address", "uint24"],
-    //     [token0, token1, fee]
-    //   )
-    // );
-    const isuniswapAddress = await isUniswapPool(token0, token1, fee);
+ 
+    const uniswapAddress = await uniswapPoolAddress(token0, token1, fee);
 
-    // const poolAddress = await getPool(token0, token1, fee);
 
-    if (isuniswapAddress.toLowerCase() !== address.toLowerCase()) {
+
+    if (uniswapAddress.toLowerCase() !== address.toLowerCase()) {
       return findings;
     }
 
