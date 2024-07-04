@@ -25,7 +25,7 @@ interface HandleArgs {
 
 }
 const PROVIDER = getEthersProvider();
-export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: TransactionEvent) => {
+export const provideHandleTransaction = ( PROVIDER: any) => async (txEvent: TransactionEvent) => {
   const findings: Finding[] = [];
 
   const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
@@ -35,7 +35,7 @@ export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: Tra
     const { sender, recipient, amount0, amount1 } = swap.args;
     const address = swap.address;
 
-    const contract = new ethers.Contract(address, poolABI, args.PROVIDER);
+    const contract = new ethers.Contract(address, poolABI, PROVIDER);
 
     let token0, token1, fee;
 
@@ -61,7 +61,7 @@ export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: Tra
 
     findings.push(
       Finding.fromObject({
-        name: "Swap detected",
+        name: "Uniswap-1",
         description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
         alertId: "FORTA-1",
         severity: FindingSeverity.Low,
@@ -83,7 +83,7 @@ export const provideHandleTransaction = (args:HandleArgs) => async (txEvent: Tra
 };
 
 export default {
-  handleTransaction: provideHandleTransaction({
-    PROVIDER:PROVIDER
-  }),
+  handleTransaction: provideHandleTransaction(
+    PROVIDER
+  ),
 };
