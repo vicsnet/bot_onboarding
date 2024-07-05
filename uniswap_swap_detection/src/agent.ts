@@ -25,7 +25,8 @@ interface HandleArgs {
 
 }
 const PROVIDER = getEthersProvider();
-export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProvider) => async (txEvent: TransactionEvent) => {
+const block = 20;
+export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProvider, block:Number) => async (txEvent: TransactionEvent) => {
   const findings: Finding[] = [];
 
   const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
@@ -40,9 +41,9 @@ export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProv
     let token0, token1, fee;
 
     try {
-      token1 = await contract.token1();
-      token0 = await contract.token0();
-      fee = await contract.fee();
+      token1 = await contract.token1({ blockTag: block });
+      token0 = await contract.token0({ blockTag: block });
+      fee = await contract.fee({ blockTag: block });
     } catch (error) {
       console.log("Error reading contract data:", error);
     }
@@ -51,7 +52,7 @@ export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProv
     console.log("fee...", fee)
 
  
-    const uniswapAddress = await uniswapPoolAddress(token0, token1, fee);
+    const uniswapAddress = uniswapPoolAddress(token0, token1, fee);
 
 
 
@@ -84,6 +85,7 @@ export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProv
 
 export default {
   handleTransaction: provideHandleTransaction(
-    PROVIDER
+    PROVIDER,
+    block
   ),
 };
