@@ -25,7 +25,7 @@ interface HandleArgs {
 
 }
 const PROVIDER = getEthersProvider();
-export const provideHandleTransaction = ( PROVIDER: any) => async (txEvent: TransactionEvent) => {
+export const provideHandleTransaction = ( PROVIDER: ethers.providers.JsonRpcProvider) => async (txEvent: TransactionEvent) => {
   const findings: Finding[] = [];
 
   const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
