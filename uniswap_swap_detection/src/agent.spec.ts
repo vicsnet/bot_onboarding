@@ -3,22 +3,17 @@ import {
   FindingSeverity,
   Finding,
   HandleTransaction,
-  createTransactionEvent,
   ethers,
-  getEthersProvider,
 } from "forta-agent";
-import { utils, Contract } from "ethers";
+import { utils } from "ethers";
 
-import agent,{provideHandleTransaction} from "./agent";
-import {
-  UNISWAP_FACTORY_ADDRESS,
-  SWAP_EVENT,
-  FUNCTION_EXACT,
-  SWAP_ROUTER,
-  CREATED_POOL,
-} from "./constant";
+import agent, { provideHandleTransaction } from "./agent";
+import { SWAP_EVENT, CREATED_POOL } from "./constant";
 import { createAddress } from "forta-agent-tools";
-import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
+import {
+  MockEthersProvider,
+  TestTransactionEvent,
+} from "forta-agent-tools/lib/test";
 
 const iface: utils.Interface = new utils.Interface([
   "function token1() external view returns (address)",
@@ -30,25 +25,19 @@ describe("swap occur", () => {
 
   let txEvent: TestTransactionEvent;
 
-  const address1 =
-        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-       const token_1 = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+  const address1 = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+  const token_1 = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
 
+  const token_0 = "0x765Af38A6e8FDcB1EFEF8a3dd2213EFD3090B00F";
 
-    const token_0="0x765Af38A6e8FDcB1EFEF8a3dd2213EFD3090B00F"
-
-    const fee_ =3000
-  const mockProvider:MockEthersProvider = new MockEthersProvider();
+  const fee_ = 3000;
+  const mockProvider: MockEthersProvider = new MockEthersProvider();
   mockProvider.setNetwork(137);
-  
-
- 
 
   handleTransaction = provideHandleTransaction(mockProvider as any, 20);
 
-// const PROVIDER = getEthersProvider()
+  // const PROVIDER = getEthersProvider()
   beforeAll(() => {
-   
     jest.spyOn(Date, "now").mockImplementation(() => 1590000000000);
   });
 
@@ -76,51 +65,31 @@ describe("swap occur", () => {
   const poolAddress = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76";
 
   function createGetToken0() {
-    return mockProvider.addCallTo(
-      address1,
-      20,
-      iface,
-      "token0",
-      {
-        inputs: [],
-        outputs: [token0],
-      }
-    );
+    return mockProvider.addCallTo(address1, 20, iface, "token0", {
+      inputs: [],
+      outputs: [token0],
+    });
   }
   function createGetToken1() {
-    return mockProvider.addCallTo(
-      address1,
-      20,
-      iface,
-      "token1",
-      {
-        inputs: [],
-        outputs: [token1],
-      }
-    );
+    return mockProvider.addCallTo(address1, 20, iface, "token1", {
+      inputs: [],
+      outputs: [token1],
+    });
   }
   function createGetfee() {
-    return mockProvider.addCallTo(
-      address1,
-      20,
-      iface,
-      "fee",
-      {
-        inputs: [],
-        outputs: [fee],
-      }
-    );
-    
-   
+    return mockProvider.addCallTo(address1, 20, iface, "fee", {
+      inputs: [],
+      outputs: [fee],
+    });
   }
 
   describe("token swap detection handle Transaction", () => {
     it("returns empty findings with TestTransactionEvent", async () => {
       txEvent = new TestTransactionEvent();
       txEvent.setBlock(20);
-      createGetToken0() 
-      createGetToken1()
-      createGetfee()
+      createGetToken0();
+      createGetToken1();
+      createGetfee();
       const findings = await handleTransaction(txEvent);
 
       expect(findings).toStrictEqual([]);
@@ -128,10 +97,10 @@ describe("swap occur", () => {
     it("returns findings", async () => {
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-        // txEvent.setBlock(20);
-        createGetToken1()
-        createGetToken0() 
-        createGetfee()
+      // txEvent.setBlock(20);
+      createGetToken1();
+      createGetToken0();
+      createGetfee();
 
       txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
         sender,
@@ -143,7 +112,7 @@ describe("swap occur", () => {
         tick,
       ]);
 
-      const findings = await handleTransaction(txEvent)
+      const findings = await handleTransaction(txEvent);
 
       expect(findings).toStrictEqual([
         Finding.fromObject({
@@ -165,31 +134,12 @@ describe("swap occur", () => {
       ]);
     });
 
-    // it("returns empty findings if not uniswap event", async () => {
-    //   createGetToken0() 
-    //   createGetToken1()
-    //   createGetfee()
-    //   const address = '0x2170c741c41531aec20e7c107c24eecfdd15e69c9bb0a8dd37b1840b9e0b207b'.toLowerCase();      
-    //   txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
-    //     sender,
-    //     recipient,
-    //     amount0,
-    //     amount1,
-    //     sqrtPricex96,
-    //     liquidity,
-    //     tick,
-    //     ]);
-    //   // txEvent.setBlock(20);
-    //   const findings = await handleTransaction(txEvent);
-    //   expect(findings).toStrictEqual([]);
-    // });
     it("returns empty findings on non swap event", async () => {
-      createGetToken0() 
-        createGetToken1()
-        createGetfee()
+      createGetToken0();
+      createGetToken1();
+      createGetfee();
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-      
 
       txEvent = new TestTransactionEvent().addEventLog(CREATED_POOL, address, [
         token0,
@@ -204,9 +154,9 @@ describe("swap occur", () => {
     });
 
     it("returns multiple findings for uniswap swap event", async () => {
-      createGetToken0() 
-        createGetToken1()
-        createGetfee()
+      createGetToken0();
+      createGetToken1();
+      createGetfee();
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
       const recipientNew = createAddress("0x4");
