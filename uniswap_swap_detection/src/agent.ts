@@ -38,6 +38,11 @@ export const provideHandleTransaction =
         console.log("Error reading contract data:", error);
       }
 
+      if(token0 === undefined || null && token1===  undefined || null && fee ===  undefined || null){
+        return findings;
+      }
+
+      
       const uniswapAddress = uniswapPoolAddress(token0, token1, fee);
 
       if (uniswapAddress.toLowerCase() !== address.toLowerCase()) {
