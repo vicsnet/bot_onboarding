@@ -10,7 +10,7 @@ import {
 import { SWAP_EVENT } from "./constant";
 import { poolABI } from "./abi";
 
-import { uniswapPoolAddress } from "./utils";
+import { getuniswapPoolAddress } from "./utils";
 
 
 const PROVIDER = getEthersProvider();
@@ -44,7 +44,7 @@ export const provideHandleTransaction =
       }
 
       
-      const uniswapAddress = uniswapPoolAddress(token0, token1, fee);
+      const uniswapAddress = getuniswapPoolAddress(token0, token1, fee);
 
       if (uniswapAddress.toLowerCase() !== address.toLowerCase()) {
         return findings;

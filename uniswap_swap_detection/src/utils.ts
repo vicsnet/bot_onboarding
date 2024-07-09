@@ -4,7 +4,7 @@ import {
   UNISWAP_POOL_INIT_CODE_HASH,
 } from "./constant";
 
-export const uniswapPoolAddress = (
+export const getuniswapPoolAddress = (
   token0: String,
   token1: String,
   fee: Number

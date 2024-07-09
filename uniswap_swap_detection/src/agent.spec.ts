@@ -12,7 +12,6 @@ import {
   SWAP_EVENT,
  
 
-  CREATED_POOL,
 } from "./constant";
 import { createAddress } from "forta-agent-tools";
 import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
@@ -22,6 +21,9 @@ const iface: utils.Interface = new utils.Interface([
   "function token0() external view returns (address)",
   "function fee() external view returns (uint24)",
 ]);
+
+export const CREATED_POOL =
+  "event PoolCreated(address indexed token0,address indexed token1,uint24 indexed fee,int24 tickSpacing,address pool)";
 describe("swap occur", () => {
   let handleTransaction: HandleTransaction;
 
