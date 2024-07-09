@@ -12,11 +12,10 @@ import { poolABI } from "./abi";
 
 import { getuniswapPoolAddress } from "./utils";
 
-
 const PROVIDER = getEthersProvider();
 
 export const provideHandleTransaction =
-(PROVIDER: ethers.providers.JsonRpcProvider) =>
+  (PROVIDER: ethers.providers.JsonRpcProvider) =>
   async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
     const block = await txEvent.blockNumber;
@@ -39,11 +38,15 @@ export const provideHandleTransaction =
         console.log("Error reading contract data:", error);
       }
 
-      if(token0 === undefined || null && token1===  undefined || null && fee ===  undefined || null){
+      if (
+        token0 === undefined ||
+        (null && token1 === undefined) ||
+        (null && fee === undefined) ||
+        null
+      ) {
         return findings;
       }
 
-      
       const uniswapAddress = getuniswapPoolAddress(token0, token1, fee);
 
       if (uniswapAddress.toLowerCase() !== address.toLowerCase()) {
