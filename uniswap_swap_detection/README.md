@@ -14,6 +14,13 @@ Uniswap-1
 - it emmits the token address and the pool address 
 - Finding type is set to Info 
 - FInding severity is set to Low
+- Metadata includes
+   - sender: the address of the sender
+   - recipient: the address of the recipient
+   - token0: the address of the token deposited
+   - token1: the address of the token to be reeceived
+   - amount0: amount of token deposited
+   - amount1: amount of token to be received
 
 ### Transaction 
 The agent behaviour can be verified with the following transactions 
