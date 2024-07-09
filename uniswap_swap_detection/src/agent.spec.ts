@@ -165,24 +165,7 @@ describe("swap occur", () => {
       ]);
     });
 
-    // it("returns empty findings if not uniswap event", async () => {
-    //   createGetToken0() 
-    //   createGetToken1()
-    //   createGetfee()
-    //   const address = '0x2170c741c41531aec20e7c107c24eecfdd15e69c9bb0a8dd37b1840b9e0b207b'.toLowerCase();      
-    //   txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
-    //     sender,
-    //     recipient,
-    //     amount0,
-    //     amount1,
-    //     sqrtPricex96,
-    //     liquidity,
-    //     tick,
-    //     ]);
-    //   // txEvent.setBlock(20);
-    //   const findings = await handleTransaction(txEvent);
-    //   expect(findings).toStrictEqual([]);
-    // });
+  
     it("returns empty findings on non swap event", async () => {
       createGetToken0() 
         createGetToken1()
