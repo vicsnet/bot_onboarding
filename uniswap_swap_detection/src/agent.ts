@@ -12,18 +12,15 @@ import { poolABI } from "./abi";
 
 import { uniswapPoolAddress } from "./utils";
 
-interface HandleArgs {
-  PROVIDER: ethers.providers.JsonRpcProvider;
-}
+
 const PROVIDER = getEthersProvider();
-const block = 20;
+const block = PROVIDER.getBlockNumber();
 export const provideHandleTransaction =
-  (PROVIDER: ethers.providers.JsonRpcProvider, block: Number) =>
+  (PROVIDER: ethers.providers.JsonRpcProvider, block: any) =>
   async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
     const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
-    // const PROVIDER = getEthersProvider();
 
     for (const swap of tokenSwapEvent) {
       const { sender, recipient, amount0, amount1 } = swap.args;
