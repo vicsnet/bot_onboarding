@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const alchemyApiKey = process.env.ALCHEMY_API_KEY;
+// const alchemyApiKey = process.env.ALCHEMY_API_KEY;
 export const UNISWAP_FACTORY_ADDRESS =
   "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 export const SWAP_EVENT =
@@ -11,8 +11,7 @@ export const SWAP_EVENT =
 
 export const CREATED_POOL =
   "event PoolCreated(address indexed token0,address indexed token1,uint24 indexed fee,int24 tickSpacing,address pool)";
-export const FUNCTION_EXACT =
-  " function exactInputSingle(address,address,uint24,address,uint256,uint256,uint256,uint160)";
+
 
 export const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
 export const PROVIDER = new ethers.providers.JsonRpcProvider(

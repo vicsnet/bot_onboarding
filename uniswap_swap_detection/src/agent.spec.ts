@@ -3,18 +3,15 @@ import {
   FindingSeverity,
   Finding,
   HandleTransaction,
-  createTransactionEvent,
   ethers,
-  getEthersProvider,
 } from "forta-agent";
 import { utils, Contract } from "ethers";
 
 import agent,{provideHandleTransaction} from "./agent";
 import {
-  UNISWAP_FACTORY_ADDRESS,
   SWAP_EVENT,
-  FUNCTION_EXACT,
-  SWAP_ROUTER,
+ 
+
   CREATED_POOL,
 } from "./constant";
 import { createAddress } from "forta-agent-tools";
@@ -40,11 +37,12 @@ describe("swap occur", () => {
     const fee_ =3000
   const mockProvider:MockEthersProvider = new MockEthersProvider();
   mockProvider.setNetwork(137);
+
   
 
  
 
-  handleTransaction = provideHandleTransaction(mockProvider as any, 20);
+  handleTransaction = provideHandleTransaction(mockProvider as any);
 
 // const PROVIDER = getEthersProvider()
   beforeAll(() => {
@@ -143,6 +141,7 @@ describe("swap occur", () => {
         tick,
       ]);
 
+      txEvent.setBlock(20);
       const findings = await handleTransaction(txEvent)
 
       expect(findings).toStrictEqual([
@@ -230,7 +229,7 @@ describe("swap occur", () => {
           liquidity,
           tick,
         ]);
-
+        txEvent.setBlock(20);
       const findings = await handleTransaction(txEvent);
       expect(findings).toStrictEqual([
         Finding.fromObject({

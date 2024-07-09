@@ -14,11 +14,12 @@ import { uniswapPoolAddress } from "./utils";
 
 
 const PROVIDER = getEthersProvider();
-const block = PROVIDER.getBlockNumber();
+
 export const provideHandleTransaction =
-  (PROVIDER: ethers.providers.JsonRpcProvider, block: any) =>
+(PROVIDER: ethers.providers.JsonRpcProvider) =>
   async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
+    const block = await txEvent.blockNumber;
 
     const tokenSwapEvent = txEvent.filterLog(SWAP_EVENT);
 
@@ -73,5 +74,5 @@ export const provideHandleTransaction =
   };
 
 export default {
-  handleTransaction: provideHandleTransaction(PROVIDER, block),
+  handleTransaction: provideHandleTransaction(PROVIDER),
 };
