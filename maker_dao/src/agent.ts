@@ -14,6 +14,7 @@ import {
   getJsonRpcUrl,
   ethers,
   getAlerts,
+  getEthersProvider,
 } from "forta-agent";
 
 import {
@@ -35,6 +36,8 @@ import {
   GET_DAI_BALANCE,
   GET_TOTAL_SUPPLY,
 } from "./constant";
+
+const PROVIDER = getEthersProvider();
 
 const provideHandleTransaction =
   (
@@ -173,16 +176,11 @@ const provideHandleTransaction =
     return findings;
   };
 
-export default (
-  provider: ethers.providers.JsonRpcProvider,
-  contractAddr: string,
-  botId: string,
-  alertId: string
-) => ({
+export default {
   handleTransaction: provideHandleTransaction(
     provider,
     contractAddr,
     botId,
     alertId
   ),
-});
+};
