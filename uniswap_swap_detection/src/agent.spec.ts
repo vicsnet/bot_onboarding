@@ -21,9 +21,10 @@ const iface: utils.Interface = new utils.Interface([
   "function fee() external view returns (uint24)",
 ]);
 
-export const CREATED_POOL =
+export const poolCreatedEvent =
   "event PoolCreated(address indexed token0,address indexed token1,uint24 indexed fee,int24 tickSpacing,address pool)";
-describe("swap occur", () => {
+
+  describe("UniswapV3 Swap Detection Test Suite", () => {
   let handleTransaction: HandleTransaction;
 
   let txEvent: TestTransactionEvent;
@@ -39,7 +40,6 @@ describe("swap occur", () => {
 
   handleTransaction = provideHandleTransaction(mockProvider as any);
 
-  // const PROVIDER = getEthersProvider()
   beforeAll(() => {
     jest.spyOn(Date, "now").mockImplementation(() => 1590000000000);
   });
@@ -55,7 +55,6 @@ describe("swap occur", () => {
   const deadline = 1718308601;
   const token0 = "0x765Af38A6e8FDcB1EFEF8a3dd2213EFD3090B00F";
   const token1 = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
-  // const amountIn = ethers.BigNumber.from("847955346422803956304");
   const amountOutMinimum = 31628133;
   const sqrtPriceLimitX96 = 0;
 
@@ -86,21 +85,19 @@ describe("swap occur", () => {
     });
   }
 
-  describe("token swap detection handle Transaction", () => {
-    it("returns empty findings with TestTransactionEvent", async () => {
-      txEvent = new TestTransactionEvent();
-      txEvent.setBlock(20);
+    it("returns no findings for empty transaction", async () => {
       createGetToken0();
       createGetToken1();
       createGetfee();
+      txEvent = new TestTransactionEvent();
+      txEvent.setBlock(20);
       const findings = await handleTransaction(txEvent);
 
       expect(findings).toStrictEqual([]);
     });
-    it("returns findings", async () => {
+    it("detects a 'swap' on a valid UniswapV3 pool", async () => {
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-      // txEvent.setBlock(20);
       createGetToken1();
       createGetToken0();
       createGetfee();
@@ -138,13 +135,12 @@ describe("swap occur", () => {
       ]);
     });
 
-    it("returns empty findings if not uniswap event", async () => {
+    it("detect no 'swap' from non-Uniswap pool ", async () => {
       createGetToken0();
       createGetToken1();
       createGetfee();
-      const address =
-        "0x2170c741c41531aec20e7c107c24eecfdd15e69c9bb0a8dd37b1840b9e0b207b".toLowerCase();
-      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
+      const nonUniswapPoolAddress =createAddress("0x674");
+      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, nonUniswapPoolAddress, [
         sender,
         recipient,
         amount0,
@@ -157,14 +153,14 @@ describe("swap occur", () => {
       const findings = await handleTransaction(txEvent);
       expect(findings).toStrictEqual([]);
     });
-    it("returns empty findings on non swap event", async () => {
+    it("detect no swap on non uniswap 'swap' event", async () => {
       createGetToken0();
       createGetToken1();
       createGetfee();
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
 
-      txEvent = new TestTransactionEvent().addEventLog(CREATED_POOL, address, [
+      txEvent = new TestTransactionEvent().addEventLog(poolCreatedEvent, address, [
         token0,
         token1,
         fee,
@@ -176,13 +172,14 @@ describe("swap occur", () => {
       expect(findings).toStrictEqual([]);
     });
 
-    it("returns multiple findings for uniswap swap event", async () => {
+    it("return multiple findings for uniswap 'swap' event and empty finding for non uniswap 'swap' event", async () => {
       createGetToken0();
       createGetToken1();
       createGetfee();
       const address =
         "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
       const recipientNew = createAddress("0x4");
+      const nonUniswapPoolAddress = createAddress("0x4");
 
       txEvent = new TestTransactionEvent()
         .addEventLog(SWAP_EVENT, address, [
@@ -195,6 +192,15 @@ describe("swap occur", () => {
           tick,
         ])
         .addEventLog(SWAP_EVENT, address, [
+          sender,
+          recipientNew,
+          amount0,
+          amount1,
+          sqrtPricex96,
+          liquidity,
+          tick,
+        ])
+        .addEventLog(SWAP_EVENT, nonUniswapPoolAddress, [
           sender,
           recipientNew,
           amount0,
@@ -238,7 +244,7 @@ describe("swap occur", () => {
             amount1: amount1.toString(),
           },
         }),
+      
       ]);
     });
-  });
 });
