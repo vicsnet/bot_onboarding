@@ -5,10 +5,10 @@ import {
   PROVIDER,
   POOL_INIT_CODE_HASH,
 } from "./constant";
-export const getPool = (token1: String, token2: String, fee: Number) => {
+export const getPool = (token1: String, token2: String, fee: Number, block:Number) => {
   const contract = new ethers.Contract(UNISWAP_ADDRESS, ABI, PROVIDER);
 
-  const poolAddress = contract.getPool(token1, token2, fee);
+  const poolAddress = contract.getPool(token1, token2, fee, block);
 
   return poolAddress;
 };

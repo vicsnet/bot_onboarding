@@ -20,18 +20,6 @@ export const L1_AARBITRUM_GATEWAY =
 
 // i need to check the balance of L1 escrow to ensure that is >= to the total supply of L2 Escrow
 
-export const PROVIDER_EThereum = new ethers.providers.JsonRpcProvider(
-  `https://eth-pokt.nodies.app`
-);
-
-export const PROVIDER_OP = new ethers.providers.JsonRpcProvider(
-  `https://op-pokt.nodies.app`
-);
-
-export const PROVIDER_ARBI = new ethers.providers.JsonRpcProvider(
-  `https://arb-pokt.nodies.app`
-);
-
 export const TRANSFER_EVENT =
   "event Transfer(address indexed from, address indexed to, uint256 value)";
 export const DEPOSIT_FINALISED_EVENT =
@@ -43,10 +31,11 @@ export const ARBI_CHAINID = 42161;
 
 export const GET_DAI_BALANCE = async (
   provider: ethers.providers.JsonRpcProvider,
-  escrowAddr: string
+  escrowAddr: string,
+  blockTag:Number
 ) => {
   const contract = new ethers.Contract(L1_DAI_CONTRACT_ADDRESS, ABI, provider);
-  const balanceOf = await contract.balanceOf(escrowAddr);
+  const balanceOf = await contract.balanceOf(escrowAddr, {blockTag});
 
   console.log(balanceOf);
   return balanceOf;
@@ -54,10 +43,10 @@ export const GET_DAI_BALANCE = async (
 
 export const GET_TOTAL_SUPPLY = async (
   contractAddr: string,
-  provider: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.JsonRpcProvider,
+  blockTag:Number
 ) => {
   const contract = new ethers.Contract(contractAddr, L2ABI, provider);
-  //   const deploymentChainId = contract.deploymentChainId();
-  const totalSupply = contract.totalSupply();
+  const totalSupply = contract.totalSupply({blockTag});
   return totalSupply;
 };
