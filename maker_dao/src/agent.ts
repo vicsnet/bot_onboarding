@@ -15,6 +15,8 @@ import {
   ethers,
   getAlerts,
   getEthersProvider,
+  AlertsResponse,
+  AlertQueryOptions,
 } from "forta-agent";
 
 import {
@@ -33,18 +35,35 @@ import {
   GET_DAI_BALANCE,
   GET_TOTAL_SUPPLY,
 } from "./constant";
-import { log } from "console";
 
 const PROVIDER = getEthersProvider();
 const AlertId = "1";
 const BotId = "2";
 
+const alert: Alert = {
+  alertId: "L1_ESCROW",
+  chainId: 1,
+  hasAddress: () => true,
+  metadata: {
+    totalSupply: Number,
+    // abtEscBal: Number,
+    network: "Ethereum",
+  },
+};
+
+// Default response structure for alert queries
+const emptyAlertResponse: AlertsResponse = {
+  alerts: [alert],
+  pageInfo: { hasNextPage: false },
+};
+
+const query: AlertQueryOptions = { alertIds: ["L1_ESCROW"] };
+
 export const provideHandleTransaction =
   (
     provider: ethers.providers.JsonRpcProvider,
     contractAddr: string,
-    botId: string,
-    alertId: string
+    getL1Alert: (alertQuery: AlertQueryOptions) => Promise<AlertsResponse>
   ) =>
   async (txEvent: TransactionEvent) => {
     let findings: Finding[] = [];
@@ -59,19 +78,17 @@ export const provideHandleTransaction =
       for (const deposit of DepositEvent) {
         const { l1Token, from, to, amount } = deposit.args;
         const blockTag = txEvent.blockNumber;
-        console.log("block Tag ", blockTag);
 
         if (chainId === OP_CHAINID || chainId === ARBI_CHAINID) {
-          console.log("chain iddd ", chainId);
-
           const data = await GET_TOTAL_SUPPLY(contractAddr, provider, blockTag);
 
-          console.log("total supply", data.toString());
           findings.push(
             Finding.fromObject({
-              name: `Deposit occur on ${chainId} bridge`,
-              description: `h1`,
-              alertId: "FORTA-1",
+              name: `DAI Bridge Deposit Transaction`,
+              description: `Deposit occur on DAI ${chainId} chainId bridge`,
+              alertId: `${
+                chainId === OP_CHAINID ? "OPTIMISM-1" : "ARBITRUM-1"
+              }`,
               severity: FindingSeverity.Low,
               type: FindingType.Info,
               metadata: {
@@ -86,84 +103,56 @@ export const provideHandleTransaction =
       }
     }
 
-    if (chainId === 1) {
-    
-      console.log(transferEvent[0].args.to);
-      
-      
-      if (transferEvent[0].args.to?.toLowerCase() === L1_AARBITRUM_GATEWAY.toLowerCase()) {
-        console.log("aA");
+    if (chainId === ETHER_CHAINID) {
+      if (transferEvent[0]) {
+        const toAddress = transferEvent[0].args?.to?.toLowerCase();
 
-        const { alerts } = await getAlerts({
-          botIds: [botId],
-          alertId: alertId,
-          chainId: chainId,
-          first: 1,
-        });
-        console.log("aaa", alerts)
-        console.log("my alerts");
-        for (const transfer of transferEvent ) {
-          
-            if (alerts) {
-              const totalSupply = await alerts[0].metadata.totalSupply;
-              console.log("tt", totalSupply);
-              
-              const blockTag = await txEvent.blockNumber;
-              const Escrowbalance = await GET_DAI_BALANCE(
+        const { alerts } = await getL1Alert(query);
+
+        for (const transfer of transferEvent) {
+          if (alerts) {
+            const totalSupply = await alerts[0].metadata.totalSupply;
+
+            const blockTag = await txEvent.blockNumber;
+            let Escrowbalance;
+            let a;
+            if (toAddress === L1_AARBITRUM_GATEWAY.toLowerCase()) {
+              Escrowbalance = await GET_DAI_BALANCE(
                 provider,
                 L1_ESCROW_ADDRESS_ARBITRUM,
                 blockTag
               );
-              console.log("my Escrow", Escrowbalance);
-              if (Escrowbalance >= totalSupply) {
-                console.log("tSupply", totalSupply);
-                return findings;
-              } else {
-                findings.push(
-                  Finding.fromObject({
-                    name: `Deposit occur on ${chainId} bridge`,
-                    description: ``,
-                    alertId: "FORTA-1",
-                    severity: FindingSeverity.High,
-                    type: FindingType.Suspicious,
-                    metadata: {
-                      totalSupply: totalSupply.toString(),
-                      balance: Escrowbalance.toString(),
-                    },
-                  })
-                );
-              }
+            } else if (toAddress === L1_ESCROW_ADDRESS_OPTIMISM.toLowerCase()) {
+              Escrowbalance = await GET_DAI_BALANCE(
+                provider,
+                L1_ESCROW_ADDRESS_OPTIMISM,
+                blockTag
+              );
+            } else {
+              return findings;
             }
-        
-        }
-      }
 
-      if (txEvent.to === L1_ESCROW_ADDRESS_OPTIMISM) {
-        const { alerts } = await getAlerts({
-          botIds: [botId],
-          alertId: alertId,
-          chainId: chainId,
-          first: 1,
-        });
-        transferEvent.forEach(async (e) => {
-          if (alerts) {
-            const totalSupply = alerts[0].metadata.totalSupply;
-            const blockTag = await txEvent.blockNumber;
-            const Escrowbalance = GET_DAI_BALANCE(
-              provider,
-              L1_ESCROW_ADDRESS_OPTIMISM,
-              blockTag
-            );
-
-            console.log(Escrowbalance);
             if (Escrowbalance >= totalSupply) {
+              console.log("tSupply", totalSupply);
               return findings;
             } else {
               findings.push(
                 Finding.fromObject({
-                  name: `Deposit occur on ${chainId} bridge`,
-                  description: ``,
-                  alertId: "FORTA-1",
+                  name: `Scam Transaction Detected on ${
+                    toAddress === L1_AARBITRUM_GATEWAY.toLowerCase()
+                      ? "Arbitrium DAI"
+                      : "Optimism DAI"
+                  }`,
+                  description: `Scam transaction occur on ${
+                    toAddress === L1_AARBITRUM_GATEWAY.toLowerCase()
+                      ? "Arbitrium"
+                      : "Optimism"
+                  } DAI Address. Total supply of ${totalSupply} is greater than Escrow balance of ${Escrowbalance}`,
+                  alertId: `${
+                    toAddress === L1_AARBITRUM_GATEWAY.toLowerCase()
+                      ? "ARBITRUM-2"
+                      : "OPTIMISM-2"
+                  }`,
                   severity: FindingSeverity.High,
                   type: FindingType.Suspicious,
                   metadata: {
@@ -174,9 +163,10 @@ export const provideHandleTransaction =
               );
             }
           }
-        });
+        }
       }
     }
+
     return findings;
   };
 
@@ -184,7 +174,6 @@ export default {
   handleTransaction: provideHandleTransaction(
     PROVIDER,
     L2_DAI_GATEWAY_ARB,
-    BotId,
-    AlertId
+    emptyAlertResponse as any
   ),
 };

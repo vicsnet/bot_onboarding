@@ -25,7 +25,7 @@ import {
   ARBI_CHAINID,
   OP_CHAINID,
   TRANSFER_EVENT,
-  ETHER_CHAINID
+  ETHER_CHAINID,
 } from "./constant";
 import agent, { provideHandleTransaction } from "./agent";
 import { createAddress } from "forta-agent-tools";
@@ -40,7 +40,7 @@ describe("Dai briged", () => {
 
   const mockProvider: MockEthersProvider = new MockEthersProvider();
   let txEvent: TestTransactionEvent;
-  const mockAlert = jest.fn()
+  const mockAlert = jest.fn();
 
   function getTotalSupply() {
     return mockProvider.addCallTo(L2_DAI_ARBITRUM, 30, iface, "totalSupply", {
@@ -48,20 +48,31 @@ describe("Dai briged", () => {
       outputs: [1000],
     });
   }
-  function getBalanceOfArb() {
-    return mockProvider.addCallTo(L2_DAI_ARBITRUM, 30, iface, "balanceOf", {
-      inputs: [L1_ESCROW_ADDRESS_ARBITRUM],
-      outputs: [10000],
-    });
+  function getBalanceOfArb(balance: Number) {
+    return mockProvider.addCallTo(
+      L1_DAI_CONTRACT_ADDRESS,
+      30,
+      iface,
+      "balanceOf",
+      {
+        inputs: [L1_ESCROW_ADDRESS_ARBITRUM],
+        outputs: [balance],
+      }
+    );
   }
-  function getBalanceOfOpt() {
-    return mockProvider.addCallTo(L2_DAI_ARBITRUM, 30, iface, "balanceOf", {
-      inputs: [L1_ESCROW_ADDRESS_OPTIMISM],
-      outputs: [1000],
-    });
+  function getBalanceOfOpt(balance: Number) {
+    return mockProvider.addCallTo(
+      L1_DAI_CONTRACT_ADDRESS,
+      30,
+      iface,
+      "balanceOf",
+      {
+        inputs: [L1_ESCROW_ADDRESS_OPTIMISM],
+        outputs: [balance],
+      }
+    );
   }
 
- 
   beforeAll(() => {
     jest.spyOn(Date, "now").mockImplementation(() => 1590000000000);
   });
@@ -73,14 +84,14 @@ describe("Dai briged", () => {
   const l1Token = createAddress("0x344");
   const to = L1_AARBITRUM_GATEWAY;
   const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-  it("returns transaction calls for deposit finalised result", async () => {
+
+  it("returns transaction calls for deposit finalised result on ", async () => {
     mockProvider.setNetwork(ARBI_CHAINID);
     getTotalSupply();
     handleTransaction = provideHandleTransaction(
       mockProvider as any,
       L2_DAI_ARBITRUM,
-      "",
-      ""
+      mockAlert as any
     );
 
     txEvent = new TestTransactionEvent().addEventLog(
@@ -93,9 +104,9 @@ describe("Dai briged", () => {
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([
       Finding.fromObject({
-        name: `Deposit occur on 42161 bridge`,
-        description: `h1`,
-        alertId: "FORTA-1",
+        name: `DAI Bridge Deposit Transaction`,
+        description: `Deposit occur on DAI 42161 chainId bridge`,
+        alertId: "ARBITRUM-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -107,15 +118,15 @@ describe("Dai briged", () => {
       }),
     ]);
   });
+
   it("returns transaction calls for deposit finalised result", async () => {
     mockProvider.setNetwork(OP_CHAINID);
-    
+
     getTotalSupply();
     handleTransaction = provideHandleTransaction(
       mockProvider as any,
       L2_DAI_OPTIMISM,
-      "",
-      ""
+      mockAlert as any
     );
 
     txEvent = new TestTransactionEvent().addEventLog(
@@ -128,9 +139,9 @@ describe("Dai briged", () => {
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([
       Finding.fromObject({
-        name: `Deposit occur on 10 bridge`,
-        description: `h1`,
-        alertId: "FORTA-1",
+        name: `DAI Bridge Deposit Transaction`,
+        description: `Deposit occur on DAI 10 chainId bridge`,
+        alertId: "OPTIMISM-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -143,40 +154,184 @@ describe("Dai briged", () => {
     ]);
   });
 
-it("it returns empty findings for Ether Transaction ", async () =>{
-  mockProvider.setNetwork(ETHER_CHAINID);
-  getBalanceOfOpt()
-  handleTransaction = provideHandleTransaction(
-    mockProvider as any,
-    L2_DAI_OPTIMISM,
-    "",
-    "",
-  );
-  txEvent = new TestTransactionEvent();
-  txEvent.addEventLog(TRANSFER_EVENT, address, [
-    from,
-    L1_AARBITRUM_GATEWAY,
-    1000,
-  ]);
+  it("it returns empty findings for Arbitrium transaction on Ether Transaction ", async () => {
+    getBalanceOfArb(10000);
+    mockProvider.setNetwork(ETHER_CHAINID);
 
-  txEvent.setBlock(30);
-  const l1Alert: Alert = {
-    alertId: "FORTA-1",
-    chainId: 1,
-    hasAddress: (address: string) => true,
-  };
+    const l1Alert: Alert = {
+      alertId: "FORTA-1",
+      chainId: 1,
+      hasAddress: (address: string) => true,
+      metadata: {
+        totalSupply: 10000,
+        // abtEscBal: Number,
+        network: "Ethereum",
+      },
+    };
 
-  const l1Alerts: AlertsResponse = {
-    alerts: [l1Alert],
-    pageInfo: {
-      hasNextPage: false,
-    },
-  };
-  mockAlert.mockReturnValueOnce(l1Alerts)
-  const findings = await handleTransaction(txEvent);
-  expect(findings).toStrictEqual([]);
+    const l1Alerts: AlertsResponse = {
+      alerts: [l1Alert],
+      pageInfo: {
+        hasNextPage: false,
+      },
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent();
 
-})
+    txEvent.addEventLog(TRANSFER_EVENT, address, [
+      from,
+      L1_AARBITRUM_GATEWAY,
+      10000,
+    ]);
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
+  it("it returns findings for Arbitrium transaction on Ether Transaction ", async () => {
+    getBalanceOfArb(100);
+    mockProvider.setNetwork(ETHER_CHAINID);
+
+    const l1Alert: Alert = {
+      alertId: "FORTA-1",
+      chainId: 1,
+      hasAddress: (address: string) => true,
+      metadata: {
+        totalSupply: 10000,
+        // abtEscBal: Number,
+        network: "Ethereum",
+      },
+    };
+
+    const l1Alerts: AlertsResponse = {
+      alerts: [l1Alert],
+      pageInfo: {
+        hasNextPage: false,
+      },
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent();
+
+    txEvent.addEventLog(TRANSFER_EVENT, address, [
+      from,
+      L1_AARBITRUM_GATEWAY,
+      10000,
+    ]);
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: `Scam Transaction Detected on Arbitrium DAI`,
+        description: `Scam transaction occur on Arbitrium DAI Address. Total supply of 10000 is greater than Escrow balance of 100`,
+        alertId: "ARBITRUM-2",
+        severity: FindingSeverity.High,
+        type: FindingType.Suspicious,
+        metadata: {
+          totalSupply: "10000",
+          balance: "100",
+        },
+      }),
+    ]);
+  });
+  it("it returns no findings for Orptimism transaction on Ether Transaction ", async () => {
+    getBalanceOfOpt(10000);
+    mockProvider.setNetwork(ETHER_CHAINID);
+
+    const l1Alert: Alert = {
+      alertId: "FORTA-1",
+      chainId: 1,
+      hasAddress: (address: string) => true,
+      metadata: {
+        totalSupply: 10000,
+        // abtEscBal: Number,
+        network: "Ethereum",
+      },
+    };
+
+    const l1Alerts: AlertsResponse = {
+      alerts: [l1Alert],
+      pageInfo: {
+        hasNextPage: false,
+      },
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent();
+
+    txEvent.addEventLog(TRANSFER_EVENT, address, [
+      from,
+      L1_ESCROW_ADDRESS_OPTIMISM,
+      10000,
+    ]);
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
+
+  it("it returns findings for Orptimism transaction on Ether Transaction ", async () => {
+    getBalanceOfOpt(100);
+    mockProvider.setNetwork(ETHER_CHAINID);
+
+    const l1Alert: Alert = {
+      alertId: "FORTA-1",
+      chainId: 1,
+      hasAddress: (address: string) => true,
+      metadata: {
+        totalSupply: 1000,
+        // abtEscBal: Number,
+        network: "Ethereum",
+      },
+    };
+
+    const l1Alerts: AlertsResponse = {
+      alerts: [l1Alert],
+      pageInfo: {
+        hasNextPage: false,
+      },
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent();
+
+    txEvent.addEventLog(TRANSFER_EVENT, address, [
+      from,
+      L1_ESCROW_ADDRESS_OPTIMISM,
+      10000,
+    ]);
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: `Scam Transaction Detected on Optimism DAI`,
+        description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 100`,
+        alertId: "OPTIMISM-2",
+        severity: FindingSeverity.High,
+        type: FindingType.Suspicious,
+        metadata: {
+          totalSupply: "1000",
+          balance: "100",
+        },
+      }),
+    ]);
+  });
+
   it("It returns empty Findings on  non Deposit Event", async () => {
     mockProvider.setNetwork(OP_CHAINID);
 
@@ -184,14 +339,13 @@ it("it returns empty findings for Ether Transaction ", async () =>{
     handleTransaction = provideHandleTransaction(
       mockProvider as any,
       L2_DAI_OPTIMISM,
-      "",
-      ""
+      mockAlert as any
     );
-    txEvent = new TestTransactionEvent().addEventLog(
-      TRANSFER_EVENT,
-      address,
-      [from, to, 50]
-    );
+    txEvent = new TestTransactionEvent().addEventLog(TRANSFER_EVENT, address, [
+      from,
+      to,
+      50,
+    ]);
     txEvent.setBlock(30);
 
     const findings = await handleTransaction(txEvent);

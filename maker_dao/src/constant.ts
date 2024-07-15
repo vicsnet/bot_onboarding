@@ -35,9 +35,7 @@ export const GET_DAI_BALANCE = async (
   blockTag:Number
 ) => {
   const contract = new ethers.Contract(L1_DAI_CONTRACT_ADDRESS, ABI, provider);
-  const balanceOf = await contract.balanceOf(escrowAddr, {blockTag});
-
-  console.log(balanceOf);
+  const balanceOf = await contract.balanceOf(escrowAddr, {blockTag: blockTag});
   return balanceOf;
 };
 
@@ -47,6 +45,6 @@ export const GET_TOTAL_SUPPLY = async (
   blockTag:Number
 ) => {
   const contract = new ethers.Contract(contractAddr, L2ABI, provider);
-  const totalSupply = contract.totalSupply({blockTag});
+  const totalSupply = await contract.totalSupply({blockTag});
   return totalSupply;
 };
