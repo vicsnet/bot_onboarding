@@ -55,12 +55,12 @@ export const provideHandleTransaction =
 
       findings.push(
         Finding.fromObject({
-          name: "Uniswap-1",
+          name: "Uniswap Swap Detection",
           description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
-          alertId: "FORTA-1",
+          alertId: "Uniswap-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
-          protocol: "polygon",
+          protocol: "Uniswap",
           metadata: {
             sender,
             recipient,

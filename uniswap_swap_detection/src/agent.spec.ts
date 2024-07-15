@@ -24,7 +24,7 @@ const iface: utils.Interface = new utils.Interface([
 export const poolCreatedEvent =
   "event PoolCreated(address indexed token0,address indexed token1,uint24 indexed fee,int24 tickSpacing,address pool)";
 
-  describe("UniswapV3 Swap Detection Test Suite", () => {
+describe("UniswapV3 Swap Detection Test Suite", () => {
   let handleTransaction: HandleTransaction;
 
   let txEvent: TestTransactionEvent;
@@ -85,166 +85,156 @@ export const poolCreatedEvent =
     });
   }
 
-    it("returns no findings for empty transaction", async () => {
-      createGetToken0();
-      createGetToken1();
-      createGetfee();
-      txEvent = new TestTransactionEvent();
-      txEvent.setBlock(20);
-      const findings = await handleTransaction(txEvent);
+  it("returns no findings for empty transaction", async () => {
+    createGetToken0();
+    createGetToken1();
+    createGetfee();
+    txEvent = new TestTransactionEvent();
+    txEvent.setBlock(20);
+    const findings = await handleTransaction(txEvent);
 
-      expect(findings).toStrictEqual([]);
-    });
-    it("detects a 'swap' on a valid UniswapV3 pool", async () => {
-      const address =
-        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-      createGetToken1();
-      createGetToken0();
-      createGetfee();
+    expect(findings).toStrictEqual([]);
+  });
+  it("detects a 'swap' on a valid UniswapV3 pool", async () => {
+    const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+    createGetToken1();
+    createGetToken0();
+    createGetfee();
 
-      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
-        sender,
-        recipient,
-        amount0,
-        amount1,
-        sqrtPricex96,
-        liquidity,
-        tick,
-      ]);
+    txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, address, [
+      sender,
+      recipient,
+      amount0,
+      amount1,
+      sqrtPricex96,
+      liquidity,
+      tick,
+    ]);
 
-      txEvent.setBlock(20);
-      const findings = await handleTransaction(txEvent);
+    txEvent.setBlock(20);
+    const findings = await handleTransaction(txEvent);
 
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: "Uniswap-1",
-          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          protocol: "polygon",
-          metadata: {
-            sender,
-            recipient,
-            tokenIn: token0,
-            tokenOut: token1,
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-          },
-        }),
-      ]);
-    });
-
-    it("detect no 'swap' from non-Uniswap pool ", async () => {
-      createGetToken0();
-      createGetToken1();
-      createGetfee();
-      const nonUniswapPoolAddress =createAddress("0x674");
-      txEvent = new TestTransactionEvent().addEventLog(SWAP_EVENT, nonUniswapPoolAddress, [
-        sender,
-        recipient,
-        amount0,
-        amount1,
-        sqrtPricex96,
-        liquidity,
-        tick,
-      ]);
-
-      const findings = await handleTransaction(txEvent);
-      expect(findings).toStrictEqual([]);
-    });
-    it("detect no swap on non uniswap 'swap' event", async () => {
-      createGetToken0();
-      createGetToken1();
-      createGetfee();
-      const address =
-        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-
-      txEvent = new TestTransactionEvent().addEventLog(poolCreatedEvent, address, [
-        token0,
-        token1,
-        fee,
-        tick,
-        address,
-      ]);
-
-      const findings = await handleTransaction(txEvent);
-      expect(findings).toStrictEqual([]);
-    });
-
-    it("return multiple findings for uniswap 'swap' event and empty finding for non uniswap 'swap' event", async () => {
-      createGetToken0();
-      createGetToken1();
-      createGetfee();
-      const address =
-        "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
-      const recipientNew = createAddress("0x4");
-      const nonUniswapPoolAddress = createAddress("0x4");
-
-      txEvent = new TestTransactionEvent()
-        .addEventLog(SWAP_EVENT, address, [
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: "Uniswap Swap Detection",
+        description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
+        alertId: "Uniswap-1",
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        protocol: "Uniswap",
+        metadata: {
           sender,
           recipient,
-          amount0,
-          amount1,
-          sqrtPricex96,
-          liquidity,
-          tick,
-        ])
-        .addEventLog(SWAP_EVENT, address, [
-          sender,
-          recipientNew,
-          amount0,
-          amount1,
-          sqrtPricex96,
-          liquidity,
-          tick,
-        ])
-        .addEventLog(SWAP_EVENT, nonUniswapPoolAddress, [
-          sender,
-          recipientNew,
-          amount0,
-          amount1,
-          sqrtPricex96,
-          liquidity,
-          tick,
-        ]);
-      txEvent.setBlock(20);
-      const findings = await handleTransaction(txEvent);
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: "Uniswap-1",
-          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          protocol: "polygon",
-          metadata: {
-            sender,
-            recipient,
-            tokenIn: token0,
-            tokenOut: token1,
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-          },
-        }),
-        Finding.fromObject({
-          name: "Uniswap-1",
-          description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          protocol: "polygon",
-          metadata: {
-            sender,
-            recipient: recipientNew,
-            tokenIn: token0,
-            tokenOut: token1,
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-          },
-        }),
-      
+          tokenIn: token0,
+          tokenOut: token1,
+          amount0: amount0.toString(),
+          amount1: amount1.toString(),
+        },
+      }),
+    ]);
+  });
+
+  it("detect no 'swap' from non-Uniswap pool ", async () => {
+    createGetToken0();
+    createGetToken1();
+    createGetfee();
+    const nonUniswapPoolAddress = createAddress("0x674");
+    txEvent = new TestTransactionEvent().addEventLog(
+      SWAP_EVENT,
+      nonUniswapPoolAddress,
+      [sender, recipient, amount0, amount1, sqrtPricex96, liquidity, tick]
+    );
+
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
+  it("detect no swap on non uniswap 'swap' event", async () => {
+    createGetToken0();
+    createGetToken1();
+    createGetfee();
+    const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+
+    txEvent = new TestTransactionEvent().addEventLog(
+      poolCreatedEvent,
+      address,
+      [token0, token1, fee, tick, address]
+    );
+
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
+
+  it("return multiple findings for uniswap 'swap' event and empty finding for non uniswap 'swap' event", async () => {
+    createGetToken0();
+    createGetToken1();
+    createGetfee();
+    const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
+    const recipientNew = createAddress("0x4");
+    const nonUniswapPoolAddress = createAddress("0x4");
+
+    txEvent = new TestTransactionEvent()
+      .addEventLog(SWAP_EVENT, address, [
+        sender,
+        recipient,
+        amount0,
+        amount1,
+        sqrtPricex96,
+        liquidity,
+        tick,
+      ])
+      .addEventLog(SWAP_EVENT, address, [
+        sender,
+        recipientNew,
+        amount0,
+        amount1,
+        sqrtPricex96,
+        liquidity,
+        tick,
+      ])
+      .addEventLog(SWAP_EVENT, nonUniswapPoolAddress, [
+        sender,
+        recipientNew,
+        amount0,
+        amount1,
+        sqrtPricex96,
+        liquidity,
+        tick,
       ]);
-    });
+    txEvent.setBlock(20);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: "Uniswap Swap Detection",
+        description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
+        alertId: "Uniswap-1",
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        protocol: "Uniswap",
+        metadata: {
+          sender,
+          recipient,
+          tokenIn: token0,
+          tokenOut: token1,
+          amount0: amount0.toString(),
+          amount1: amount1.toString(),
+        },
+      }),
+      Finding.fromObject({
+        name: "Uniswap Swap Detection",
+        description: `A swap between ${token0} and ${token1} on UniswapV3 was detected on this pool ${address}`,
+        alertId: "Uniswap-1",
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        protocol: "Uniswap",
+        metadata: {
+          sender,
+          recipient: recipientNew,
+          tokenIn: token0,
+          tokenOut: token1,
+          amount0: amount0.toString(),
+          amount1: amount1.toString(),
+        },
+      }),
+    ]);
+  });
 });

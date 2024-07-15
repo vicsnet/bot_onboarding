@@ -12,17 +12,3 @@ export const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
 
 export const UNISWAP_POOL_INIT_CODE_HASH =
   "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54";
-
-export const ABI = [
-  {
-    inputs: [
-      { internalType: "address", name: "", type: "address" },
-      { internalType: "address", name: "", type: "address" },
-      { internalType: "uint24", name: "", type: "uint24" },
-    ],
-    name: "getPool",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
