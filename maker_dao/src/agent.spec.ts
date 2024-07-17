@@ -35,7 +35,7 @@ const iface: utils.Interface = new utils.Interface([
   "function totalSupply() external view returns(uint256)",
   "function balanceOf(address) external view returns(uint256)",
 ]);
-describe("Dai briged", () => {
+describe("Maker Dao Bridge Scam Detection Test Suite", () => {
   let handleTransaction: HandleTransaction;
 
   const mockProvider: MockEthersProvider = new MockEthersProvider();
@@ -85,7 +85,29 @@ describe("Dai briged", () => {
   const to = L1_AARBITRUM_GATEWAY;
   const address = "0x61D3f523cd7e93d8deF89bb5d5c4eC178f7CfE76".toLowerCase();
 
-  it("returns transaction calls for deposit finalised result on ", async () => {
+  it("returns no findings for empty transaction", async () => {
+    mockProvider.setNetwork(ETHER_CHAINID);
+
+    const l1Alerts: AlertsResponse = {
+      alerts: [],
+      pageInfo: {
+        hasNextPage: false,
+      },
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent();
+
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
+
+  it("returns findings for transaction calls for deposit finalized event on Arbitrium", async () => {
     mockProvider.setNetwork(ARBI_CHAINID);
     getTotalSupply();
     handleTransaction = provideHandleTransaction(
@@ -119,7 +141,7 @@ describe("Dai briged", () => {
     ]);
   });
 
-  it("returns transaction calls for deposit finalised result", async () => {
+  it("returns findings for transaction calls for deposit finalised event on Optimism", async () => {
     mockProvider.setNetwork(OP_CHAINID);
 
     getTotalSupply();
@@ -154,7 +176,7 @@ describe("Dai briged", () => {
     ]);
   });
 
-  it("it returns empty findings for Arbitrium transaction on Ether Transaction ", async () => {
+  it("returns empty findings for Arbitrium transaction on Ether Transaction ", async () => {
     getBalanceOfArb(10000);
     mockProvider.setNetwork(ETHER_CHAINID);
 
@@ -192,7 +214,7 @@ describe("Dai briged", () => {
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([]);
   });
-  it("it returns findings for Arbitrium transaction on Ether Transaction ", async () => {
+  it("returns findings for Arbitrium transaction on Ether Transaction ", async () => {
     getBalanceOfArb(100);
     mockProvider.setNetwork(ETHER_CHAINID);
 
@@ -202,7 +224,6 @@ describe("Dai briged", () => {
       hasAddress: (address: string) => true,
       metadata: {
         totalSupply: 10000,
-        // abtEscBal: Number,
         network: "Ethereum",
       },
     };
@@ -242,7 +263,7 @@ describe("Dai briged", () => {
       }),
     ]);
   });
-  it("it returns no findings for Orptimism transaction on Ether Transaction ", async () => {
+  it("returns no findings for Orptimism transaction on Ether Transaction ", async () => {
     getBalanceOfOpt(10000);
     mockProvider.setNetwork(ETHER_CHAINID);
 
@@ -281,7 +302,7 @@ describe("Dai briged", () => {
     expect(findings).toStrictEqual([]);
   });
 
-  it("it returns findings for Orptimism transaction on Ether Transaction ", async () => {
+  it("returns findings for Orptimism transaction on Ether Transaction ", async () => {
     getBalanceOfOpt(100);
     mockProvider.setNetwork(ETHER_CHAINID);
 
@@ -291,7 +312,6 @@ describe("Dai briged", () => {
       hasAddress: (address: string) => true,
       metadata: {
         totalSupply: 1000,
-        // abtEscBal: Number,
         network: "Ethereum",
       },
     };
@@ -332,7 +352,7 @@ describe("Dai briged", () => {
     ]);
   });
 
-  it("It returns empty Findings on  non Deposit Event", async () => {
+  it("returns no Findings on  non Deposit Event", async () => {
     mockProvider.setNetwork(OP_CHAINID);
 
     getTotalSupply();
@@ -352,14 +372,65 @@ describe("Dai briged", () => {
     expect(findings).toStrictEqual([]);
   });
 
-  //   it("calls the eth transaction and returns empty findings", async()=>{
-  //     txEvent = new TestTransactionEvent().addEventLog(TRANSFER_EVENT, address, [
-  //         from,
-  //         to,
-  //         10
-  //     ]);
+it ('returns findings for multiple transactions on Opt', async()=> {
+  getBalanceOfOpt(10);
+  mockProvider.setNetwork(ETHER_CHAINID);
+  const l1Alert: Alert = {
+    alertId: "FORTA-1",
+    chainId: 1,
+    hasAddress: (address: string) => true,
+    metadata: {
+      totalSupply: 1000,
+      network: "Ethereum",
+    },
+  };
 
-  //     const findings = await ethTransaction(txEvent);
-  //     expect(findings).toStrictEqual([]);
-  // })
+  const l1Alerts: AlertsResponse = {
+    alerts: [l1Alert],
+    pageInfo: {
+      hasNextPage: false,
+    },
+  };
+  mockAlert.mockReturnValue(l1Alerts);
+  handleTransaction = provideHandleTransaction(
+    mockProvider as any,
+    L2_DAI_OPTIMISM,
+    mockAlert as any
+  );
+  txEvent = new TestTransactionEvent().addEventLog(TRANSFER_EVENT, address, [
+    from,
+    L1_ESCROW_ADDRESS_OPTIMISM,
+    1000,
+  ]).addEventLog(TRANSFER_EVENT, address, [
+    from,
+    L1_ESCROW_ADDRESS_OPTIMISM,
+    1000,
+  ]);
+  txEvent.setBlock(30);
+  const findings = await handleTransaction(txEvent);
+  expect(findings).toStrictEqual([
+    Finding.fromObject({
+      name: `Scam Transaction Detected on Optimism DAI`,
+      description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
+      alertId: "OPTIMISM-2",
+      severity: FindingSeverity.High,
+      type: FindingType.Suspicious,
+      metadata: {
+        totalSupply: "1000",
+        balance: "10",
+      },
+    }),
+    Finding.fromObject({
+      name: `Scam Transaction Detected on Optimism DAI`,
+      description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
+      alertId: "OPTIMISM-2",
+      severity: FindingSeverity.High,
+      type: FindingType.Suspicious,
+      metadata: {
+        totalSupply: "1000",
+        balance: "10",
+      },
+    }),
+  ]);
 });
+})

@@ -37,8 +37,7 @@ import {
 } from "./constant";
 
 const PROVIDER = getEthersProvider();
-const AlertId = "1";
-const BotId = "2";
+
 
 const alert: Alert = {
   alertId: "L1_ESCROW",
@@ -46,7 +45,6 @@ const alert: Alert = {
   hasAddress: () => true,
   metadata: {
     totalSupply: Number,
-    // abtEscBal: Number,
     network: "Ethereum",
   },
 };
@@ -133,7 +131,6 @@ export const provideHandleTransaction =
             }
 
             if (Escrowbalance >= totalSupply) {
-              console.log("tSupply", totalSupply);
               return findings;
             } else {
               findings.push(
