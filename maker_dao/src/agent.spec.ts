@@ -186,7 +186,6 @@ describe("Maker Dao Bridge Scam Detection Test Suite", () => {
       hasAddress: (address: string) => true,
       metadata: {
         totalSupply: 10000,
-        // abtEscBal: Number,
         network: "Ethereum",
       },
     };
@@ -372,65 +371,67 @@ describe("Maker Dao Bridge Scam Detection Test Suite", () => {
     expect(findings).toStrictEqual([]);
   });
 
-it ('returns findings for multiple transactions on Opt', async()=> {
-  getBalanceOfOpt(10);
-  mockProvider.setNetwork(ETHER_CHAINID);
-  const l1Alert: Alert = {
-    alertId: "FORTA-1",
-    chainId: 1,
-    hasAddress: (address: string) => true,
-    metadata: {
-      totalSupply: 1000,
-      network: "Ethereum",
-    },
-  };
+  it("returns findings for multiple transactions on Opt", async () => {
+    getBalanceOfOpt(10);
+    mockProvider.setNetwork(ETHER_CHAINID);
+    const l1Alert: Alert = {
+      alertId: "FORTA-1",
+      chainId: 1,
+      hasAddress: (address: string) => true,
+      metadata: {
+        totalSupply: 1000,
+        network: "Ethereum",
+      },
+    };
 
-  const l1Alerts: AlertsResponse = {
-    alerts: [l1Alert],
-    pageInfo: {
-      hasNextPage: false,
-    },
-  };
-  mockAlert.mockReturnValue(l1Alerts);
-  handleTransaction = provideHandleTransaction(
-    mockProvider as any,
-    L2_DAI_OPTIMISM,
-    mockAlert as any
-  );
-  txEvent = new TestTransactionEvent().addEventLog(TRANSFER_EVENT, address, [
-    from,
-    L1_ESCROW_ADDRESS_OPTIMISM,
-    1000,
-  ]).addEventLog(TRANSFER_EVENT, address, [
-    from,
-    L1_ESCROW_ADDRESS_OPTIMISM,
-    1000,
-  ]);
-  txEvent.setBlock(30);
-  const findings = await handleTransaction(txEvent);
-  expect(findings).toStrictEqual([
-    Finding.fromObject({
-      name: `Scam Transaction Detected on Optimism DAI`,
-      description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
-      alertId: "OPTIMISM-2",
-      severity: FindingSeverity.High,
-      type: FindingType.Suspicious,
-      metadata: {
-        totalSupply: "1000",
-        balance: "10",
+    const l1Alerts: AlertsResponse = {
+      alerts: [l1Alert],
+      pageInfo: {
+        hasNextPage: false,
       },
-    }),
-    Finding.fromObject({
-      name: `Scam Transaction Detected on Optimism DAI`,
-      description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
-      alertId: "OPTIMISM-2",
-      severity: FindingSeverity.High,
-      type: FindingType.Suspicious,
-      metadata: {
-        totalSupply: "1000",
-        balance: "10",
-      },
-    }),
-  ]);
+    };
+    mockAlert.mockReturnValue(l1Alerts);
+    handleTransaction = provideHandleTransaction(
+      mockProvider as any,
+      L2_DAI_OPTIMISM,
+      mockAlert as any
+    );
+    txEvent = new TestTransactionEvent()
+      .addEventLog(TRANSFER_EVENT, address, [
+        from,
+        L1_ESCROW_ADDRESS_OPTIMISM,
+        1000,
+      ])
+      .addEventLog(TRANSFER_EVENT, address, [
+        from,
+        L1_ESCROW_ADDRESS_OPTIMISM,
+        1000,
+      ]);
+    txEvent.setBlock(30);
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      Finding.fromObject({
+        name: `Scam Transaction Detected on Optimism DAI`,
+        description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
+        alertId: "OPTIMISM-2",
+        severity: FindingSeverity.High,
+        type: FindingType.Suspicious,
+        metadata: {
+          totalSupply: "1000",
+          balance: "10",
+        },
+      }),
+      Finding.fromObject({
+        name: `Scam Transaction Detected on Optimism DAI`,
+        description: `Scam transaction occur on Optimism DAI Address. Total supply of 1000 is greater than Escrow balance of 10`,
+        alertId: "OPTIMISM-2",
+        severity: FindingSeverity.High,
+        type: FindingType.Suspicious,
+        metadata: {
+          totalSupply: "1000",
+          balance: "10",
+        },
+      }),
+    ]);
+  });
 });
-})

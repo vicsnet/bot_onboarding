@@ -1,30 +1,18 @@
 import {
-  BlockEvent,
   Finding,
-  Initialize,
-  HandleBlock,
-  HealthCheck,
-  HandleTransaction,
-  HandleAlert,
-  AlertEvent,
   Alert,
   TransactionEvent,
   FindingSeverity,
   FindingType,
-  getJsonRpcUrl,
   ethers,
-  getAlerts,
   getEthersProvider,
   AlertsResponse,
   AlertQueryOptions,
 } from "forta-agent";
 
 import {
-  L1_DAI_CONTRACT_ADDRESS,
   L1_ESCROW_ADDRESS_OPTIMISM,
   L1_ESCROW_ADDRESS_ARBITRUM,
-  L2_DAI_OPTIMISM,
-  L2_DAI_ARBITRUM,
   L2_DAI_GATEWAY_ARB,
   L1_AARBITRUM_GATEWAY,
   TRANSFER_EVENT,
@@ -38,7 +26,6 @@ import {
 
 const PROVIDER = getEthersProvider();
 
-
 const alert: Alert = {
   alertId: "L1_ESCROW",
   chainId: 1,
@@ -49,7 +36,7 @@ const alert: Alert = {
   },
 };
 
-// Default response structure for alert queries
+
 const emptyAlertResponse: AlertsResponse = {
   alerts: [alert],
   pageInfo: { hasNextPage: false },
