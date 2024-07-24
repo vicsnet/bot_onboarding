@@ -2,7 +2,7 @@
 
 ## Description
 
-This Bot detect bridge transaction that occur on Arbitrium and Optimism and send alert to Etherum and Detect if Scam transaction occur by comparing the balance of layer 2 to layer 1
+This Bot detect bridge transaction that occur on Arbitrium and Optimism and send alert to Etherum and Detect if invariant transaction occur by comparing the balance of layer 2 to layer 1
 
 ## Supported Chains
 
