@@ -21,7 +21,6 @@ export const getTotalSupply = async (
 ) => {
   const contract = new ethers.Contract(contractAddr, L2ABI, provider);
   const totalSupply = await contract.totalSupply({ blockTag });
-  console.log(totalSupply);
 
   return totalSupply;
 };

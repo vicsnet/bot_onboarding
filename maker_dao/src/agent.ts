@@ -72,7 +72,6 @@ export const provideHandleBlock =
         provider,
         blockEvent.blockNumber
       );
-      console.log("ddd", data);
 
       if (data !== layer1TotalSupply) {
         layer1TotalSupply = data;
@@ -95,7 +94,6 @@ export const provideHandleBlock =
             blockEvent.blockNumber
           );
         } else {
-          console.log("cccccdnpp", alerts[0]);
 
           Escrowbalance = await getDaiBalance(
             provider,
@@ -107,7 +105,6 @@ export const provideHandleBlock =
       if (Escrowbalance >= totalSupply) {
         return findings;
       } else {
-        console.log(totalSupply.toString());
 
         if (chain !== undefined) {
           findings.push(
