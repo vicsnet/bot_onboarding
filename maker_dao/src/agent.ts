@@ -1,9 +1,6 @@
 import {
   Finding,
   Alert,
-  TransactionEvent,
-  FindingSeverity,
-  FindingType,
   ethers,
   getEthersProvider,
   AlertsResponse,
@@ -15,12 +12,6 @@ import {
 import {
   L1_ESCROW_ADDRESS_OPTIMISM,
   L1_ESCROW_ADDRESS_ARBITRUM,
-  L2_DAI_GATEWAY_ARB,
-  L1_ARBITRUM_GATEWAY,
-  L1_DAI_CONTRACT_ADDRESS,
-  TRANSFER_EVENT,
-  DEPOSIT_FINALISED_EVENT,
-  ETHER_CHAINID,
   OP_CHAINID,
   ARBI_CHAINID,
   L2_DAI,
@@ -44,7 +35,7 @@ const alert: Alert = {
   chainId: ARBI_CHAINID,
   hasAddress: () => true,
   metadata: {
-    totalSupply: 10000,
+    totalSupply: Number,
     network: "Ethereum",
   },
 };
@@ -55,14 +46,12 @@ const emptyAlertResponse: AlertsResponse = {
 };
 
 const query: AlertQueryOptions = { alertIds: ["L1_ESCROW"] };
-const getL1Alerts = async (
-  alertQuery: AlertQueryOptions
-): Promise<AlertsResponse> => {
-  return emptyAlertResponse;
-};
 
 export const provideHandleBlock =
-  (provider: ethers.providers.JsonRpcProvider): HandleBlock =>
+  (
+    provider: ethers.providers.JsonRpcProvider,
+    getL1Alert: (alertQuery: AlertQueryOptions) => Promise<AlertsResponse>
+  ): HandleBlock =>
   async (blockEvent: BlockEvent): Promise<Finding[]> => {
     let findings: Finding[] = [];
 
@@ -72,13 +61,14 @@ export const provideHandleBlock =
         provider,
         blockEvent.blockNumber
       );
+      console.log("ddd", data);
 
       if (data !== layer1TotalSupply) {
         layer1TotalSupply = data;
         findings.push(createFindings(chainId, data));
       }
     } else {
-      const { alerts } = await getL1Alerts(query);
+      const { alerts } = await getL1Alert(query);
 
       let Escrowbalance;
       let totalSupply;
@@ -94,6 +84,7 @@ export const provideHandleBlock =
             blockEvent.blockNumber
           );
         } else {
+          console.log("cccccdnpp", alerts[0]);
 
           Escrowbalance = await getDaiBalance(
             provider,
@@ -105,6 +96,7 @@ export const provideHandleBlock =
       if (Escrowbalance >= totalSupply) {
         return findings;
       } else {
+        console.log(totalSupply.toString());
 
         if (chain !== undefined) {
           findings.push(
@@ -119,5 +111,8 @@ export const provideHandleBlock =
 
 export default {
   initialize: provideInitialize(getEthersProvider()),
-  handleBlock: provideHandleBlock(getEthersProvider()),
+  handleBlock: provideHandleBlock(
+    getEthersProvider(),
+    emptyAlertResponse as any
+  ),
 };
